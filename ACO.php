@@ -1,15 +1,19 @@
 <?php
 
 // Tableau du precedences des taches
-$tPrec = array(
-			0 => array ('-') ,
-			1 => array ( 0 ) ,
-			2 => array ( 3 ) ,
-			3 => array ( 0 ),
-			4 => array ( '-' ) ,
-			5 => array ( 1 ),
-			
-			);
+$tPrec =  array(
+						0 => array('-'),
+						1 => array(0),
+						2 => array('-'),
+						3 => array(2),
+						4 => array(3),
+						5 => array(2,1),
+						6 => array('-'),
+						7 => array(6),
+						8 => array(7),
+						9 => array(8),
+					   10 => array(9)
+);
 $tabOperations = initialisationOperations();
 $tabOperateurs = initialisationOperateurs();
 
@@ -62,18 +66,18 @@ $tFourmis = chercherFourmis($tPrec,$tFourmis);
 foreach ($tFourmis as $Fourmi ) {
 	// Tableau d'operations finis
 	$tabOperFinis = array();
-	echo "<br> ======= pour la fourmi ".$Fourmi."  ====== <br>";
 	$tabOperations = initialisationOperations();
 	$tabOperateurs = initialisationOperateurs();
 	$operateurStat = initialisationStat();
 	$tacheCourant = $Fourmi;
+	echo "<br>==========================<br>";
 	while (count($tabOperFinis) < count($tPrec)){
 
-		echo "<br> ======= Tache courant ".$tacheCourant."  ====== <br>";
+		
 		$tachesPossibles = array();
-		echo "============ Affichage des operations finis ===========<br>";
-		var_dump($tabOperFinis);
-		echo "<br>============= Affichage des taches possibles pour ".$tacheCourant." ====================== <br>";
+		
+		
+		
 		$tachesPossibles = chercherTachesPossibles($tacheCourant,$tPrec,$tabOperFinis,$tachesPossibles);
 		/* Attribier la tache a un operateur */
 		$tabResult = affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOperation,$operateurStat,$tacheCourant,$TMAX,$MMAX);
@@ -88,12 +92,12 @@ foreach ($tFourmis as $Fourmi ) {
 		// Determination du tache i
 		$ti = $tacheCourant;
 
-		var_dump($tachesPossibles);
+		
 		$tabOperFinis[] = $tacheCourant;
-		echo "<br>========= changement tache ========= <br>";
+		
 		
 		$tacheCourant  = choisirOperHazard($tachesPossibles) ;
-		echo "nouvel tache choisie ==> ".$tacheCourant;
+		
 			
 		
 		// Determination de la tache j @param ICG = Indice Competence Globale , $Q = constatne fixé , $rou = constante fixé
@@ -106,8 +110,9 @@ foreach ($tFourmis as $Fourmi ) {
 				
 				*/
 	}
-	var_dump($tabOperFinis);
-	var_dump($operateurStat);
+	echo "<br>==========================<br>";
+	//var_dump($tabOperFinis);
+	//var_dump($operateurStat);
 	var_dump($tabOperations);
 
 }
@@ -149,7 +154,7 @@ function chercherFourmis($tPrec,$tFourmis){
 */
 
 function chercherTachesPossibles($tacheCourant,$tPrec,$tOperFinis,$ancTachesPossibles){
-
+	$tachesPossibles=array();
 	for($i=0;$i<count($tPrec);$i++){
 		// Test tacheCourant = la tache parcouri
 				if ($i != $tacheCourant){
@@ -212,11 +217,9 @@ function choisirOperHazard($tabOper){
 				return $tabOper[0];
 			}else{
 				$indice = rand(0,count($tabOper)-1);
-				echo $indice;
 				return $tabOper[$indice];	
 			}	
 	}
-	else {echo "la tableau est vide";}
 	
 	
 }
@@ -244,11 +247,13 @@ function affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOpe
 			$operation = $tabOperations[$tacheCourant];
 			// Chercher list des operateurs compatible
 			$operateursId = $operateursOperation[$tacheCourant];
+
 			// Chercher l'operateur Adequoit
 			foreach ($operateursId as $idOpt) {
 
 					$operateur = $operateurStat[$idOpt];
-					if ($operation[3] == 0){
+
+					if ($operation[3] == 0){ // Operation non affecté 
 									$nbrmachines = $operateur[7]; 
 									$potentiel = $operateur[1] ;
 									$nbrtaches =  $operateur[8] ;
@@ -256,7 +261,7 @@ function affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOpe
 									$saturation = round(($charge / $potentiel) *100,2); 
 									$effectif =  round($charge / $operateur[0] *100 , 2 ) ;
 
-									
+									// Operation non affecté et tt les contraintes d'operateur acceptable
 									if ($saturation <= $satmax && $nbrtaches < $nbrTachesMax && $nbrmachines < $nbrMachinesMax ){
 										
 										// Changer les valeurs d'equilibrage pour l'operateur
@@ -273,9 +278,6 @@ function affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOpe
 										//$tabOperations[$tacheCourant] = $operation;
 										//$operateurStat[$idOpt] = $operateur;
 										
-										echo "<br>========= Affichage d'operation ===========</br>";
-										var_dump($operation);
-										echo "<br>========= Affichage d'operation ===========</br>";
 										return array($operateur,$idOpt,$operation);
 										
 									}
@@ -284,6 +286,8 @@ function affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOpe
 					}
 										
 
+		} if ($operation[3] == 0 ){
+			echo "l'operation => ".$operation[1]." non affecté a aucune operateur<br>";
 		}
 
 
@@ -301,26 +305,23 @@ function getICG(){
 
 }
 function diffMachine($operateur,$operation,$tabOperations){
-	echo "<br>============== diffMachine function ==================<br>";
-	echo "=== Nombre d'operation == ".count($operateur[5]);
+	
+	
 		if (count($operateur[5]) == 0 ){
 			return 0;
 		}
 		$nbrmachines = $operateur[7];
 		$machine = 0;
 		foreach($operateur[5] as $oper){
-			echo "<br>====== id operation ====== ".$oper;
-			echo "<br>======= String GetMachine ===".getMachine($oper,$tabOperations);
-			echo "<br>======= String operation courant ===".$operation[2];
+			
 			
 			if ( getMachine($oper,$tabOperations) == $operation[2] ){
 				$machine = 1;
 			}
 		}
-		echo "<br>======== bool : ====== ".$machine;
-		echo "<br>==================== fin diff machine ===================<br>";
+		
 		if ($machine){
-			echo "<br>**********changement ressie**************<br>";
+			
 			return $nbrmachines+1;
 		}else{return $nbrmachines;}
 
