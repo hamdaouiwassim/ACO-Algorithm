@@ -246,10 +246,10 @@ function affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOpe
 			// Determiner l'operation
 			$operation = $tabOperations[$tacheCourant];
 			// Chercher list des operateurs compatible
-			$operateursId = $operateursOperation[$tacheCourant];
+			$operateursIds = $operateursOperation[$tacheCourant];
 
 			// Chercher l'operateur Adequoit
-			foreach ($operateursId as $idOpt) {
+			foreach ($operateursIds as $idOpt) {
 
 					$operateur = $operateurStat[$idOpt];
 
@@ -287,7 +287,11 @@ function affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOpe
 										
 
 		} if ($operation[3] == 0 ){
+			$nbrdiv = 2;
 			echo "l'operation => ".$operation[1]." non affecté a aucune operateur<br>";
+			$operationdivise = diviserOperation($nbrdiv,$operation,$tacheCourant);
+			//var_dump($operationdivise);
+			affecterOperationDivise($operationdivise,$operateursIds);
 		}
 
 
@@ -378,5 +382,56 @@ function initialisationStat(){
 	);
 	return $operateurStat;
 }
+function diviserOperation($nbrdiv,$operation,$idoperation){
+	for($i=0;$i < $nbrdiv ;$i++ ){
+		$operationdivise[$i][] = $operation[0]/$nbrdiv;
+		$operationdivise[$i][] = 0;
+		$operationdivise[$i][] = $idoperation;
+		$operationdivise[$i][] = null;
+	}
+	return $operationdivise;
+
+}
+
+function affecterOperationDivise($operationdivise,$operateursIds){
+	
+	foreach ($operationdivise as $operation){
+		foreach ($operateursIds as $idOpt){
+			if ($operation[3] != $idOpt){
+				// Essayer d'affecter cette tranche d'operation pour cette operateur
+									$nbrmachines = $operateur[7]; 
+									$potentiel = $operateur[1] ;
+									$nbrtaches =  $operateur[8] ;
+									$charge = $operateur[2] + $operation[0];
+									$saturation = round(($charge / $potentiel) *100,2); 
+									$effectif =  round($charge / $operateur[0] *100 , 2 ) ;
+
+									// Operation non affecté et tt les contraintes d'operateur acceptable
+									if ($saturation <= $satmax && $nbrtaches < $nbrTachesMax && $nbrmachines < $nbrMachinesMax ){
+										
+										// Changer les valeurs d'equilibrage pour l'operateur
+										$operateur[2] = $charge  ;
+										$operateur[3] = $saturation ;
+										$operateur[4] = $effectif ;
+										$operateur[5][] = $tacheCourant ; 
+										$operateur[6][] = $operation[0] ;  // Ajouter la charge aux table stat
+										$operateur[7] = diffMachine($operateur,$operation,$tabOperations);
+										$operateur[8]=$nbrtaches+1;
+										$operation[3] = 1;
+										// Il faut sortir de la boucle 
+										// Changer tout les tables
+										//$tabOperations[$tacheCourant] = $operation;
+										//$operateurStat[$idOpt] = $operateur;
+										
+										return array($operateur,$idOpt,$operation);
+										
+									}
+
+			}
+		}
+	}
+
+}
+
 
 ?>
