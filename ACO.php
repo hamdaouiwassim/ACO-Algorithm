@@ -78,10 +78,7 @@ foreach ($tFourmis as $Fourmi ) {
 	$resultCtr = affecterOperationControle($tabOperations,$operateurStat,$idoperateur);
 	$operateurStat = $resultCtr[0];
 	$tabOperations = $resultCtr[1];
-	//var_dump($operateurStat);
-	//var_dump($tabOperations);
 	
-	echo "<br>==========================<br>";
 	while (count($tabOperFinis) < count($tPrec)){
 
 		
@@ -121,10 +118,7 @@ foreach ($tFourmis as $Fourmi ) {
 				
 				*/
 	}
-	echo "<br>==========================<br>";
-	//var_dump($tabOperFinis);
-	//var_dump($operateurStat);
-	var_dump($tabOperations);
+	
 
 }
 // * ================== Fin 1er Operation ================== * //
@@ -297,13 +291,17 @@ function affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOpe
 					}
 										
 
-		} if ($operation[3] == 0 ){
-			$nbrdiv = 3;
-			echo "l'operation => ".$operation[1]." non affecté a aucune operateur<br>";
+		} if ($operation[3] == 0 ){ // Tache non effecté a aucun operateur
+			$nbrdiv = 2;
+			$nbrdivtot = count($operateursIds);
+			$operationdivise = diviserOperation(2,$operation,$tacheCourant);
+			$affect = affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$nbrTachesMax,$nbrMachinesMax,$tabOperations);
+			while (!$affect && ($nbrdiv <= $nbrdivtot)){
+			$nbrdiv++;
 			$operationdivise = diviserOperation($nbrdiv,$operation,$tacheCourant);
-			var_dump($operationdivise);
-			affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$nbrTachesMax,$nbrMachinesMax,$tabOperations);
-			var_dump($operateurStat);
+			$affect = affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$nbrTachesMax,$nbrMachinesMax,$tabOperations);
+			}
+			
 		}
 
 
@@ -324,7 +322,7 @@ function diffMachine($operateur,$operation,$tabOperations){
 	
 	
 		if (count($operateur[5]) == 0 ){
-			return 0;
+			return 1;
 		}
 		$nbrmachines = $operateur[7];
 		$machine = 0;
@@ -405,7 +403,7 @@ function diviserOperation($nbrdiv,$operation,$idoperation){
 
 }
 
-function affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$nbrTachesMax,$nbrMachinesMax,$tabOperations){
+function affecterOperationDivise($operationdivise,$operateursIds,&$operateurStat,$nbrTachesMax,$nbrMachinesMax,&$tabOperations){
 	//SATURATION MAX
 	$satmax = 120;
 	$affectation = 0;
@@ -430,14 +428,7 @@ function affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,
 									// Operation non affecté et tt les contraintes d'operateur acceptable
 									if ($saturation <= $satmax && $nbrtaches < $nbrTachesMax && $nbrmachines < $nbrMachinesMax ){
 										
-										// Changer les valeurs d'equilibrage pour l'operateur
-										$operateur[2] = $charge  ;
-										$operateur[3] = $saturation ;
-										$operateur[4] = $effectif ;
-										$operateur[5][] = $tacheCourant ; 
-										$operateur[6][] = $operation[0] ;  // Ajouter la charge aux table stat
-										$operateur[7] = diffMachine($operateur,$operation,$tabOperations);
-										$operateur[8]= $nbrtaches+1;
+										
 										$operation[3] = $idOpt;
 										$affectation++;
 										$trancheaffected = 1;
@@ -452,23 +443,29 @@ function affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,
 		$operationdivise[$idoperationdivision] = $operation;
 		$idoperationdivision++;
 	}// Fin de parcours de la liste des tranches
-	if ($affectation == count($operationdivise)){
-		echo "operation".$operation[2]." de division a ete affecté<br>";
-		var_dump($operationdivise);
-		var_dump($operateur);
+	if ($affectation == count($operationdivise)){ // Tache divisé et effecté pour des operateurs
+		
 		foreach ($operationdivise as $operationtr) {
-			$operateurStat[$operationtr[3]][3] = $operation[0];
+			$operation = $tabOperations[$operationtr[2]];
+			$operateurStat[$operationtr[3]][2] += $operationtr[0];
+			$charge = $operateurStat[$operationtr[3]][2];
+			$potentiel = $operateur[1] ;
+			$saturation = round(($charge / $potentiel) *100,2); 
+			$effectif =  round($charge / $operateur[0] *100 , 2 ) ;
+
+			$operateurStat[$operationtr[3]][3] = $saturation;
+			$operateurStat[$operationtr[3]][4] = $effectif;
+			$operateurStat[$operationtr[3]][5][] = $operationtr[2];
+			$operateurStat[$operationtr[3]][6][] = $operationtr[0];
+			$operateurStat[$operationtr[3]][7] = diffMachine($operateurStat[$operationtr[3]],$operation,$tabOperations);
+			$operateurStat[$operationtr[3]][8] += 1;
 
 		}
 		$tabOperations[$operationdivise[0][2]][3] = 1;
-		return array($operateurStat,$tabOperations);
-		echo "<br>================<br>";
-
-	}else{
-		echo "<br>========== la division ============<br>";
-		var_dump($operationdivise);
-		echo "<br>========== fin de la division ============<br>";
+		return 1;
 		
+	}else{ // Tache divisé et non effecté
+		return 0;
 	}
 
 }
