@@ -64,12 +64,20 @@ $tFourmis = chercherFourmis($tPrec,$tFourmis);
 // Algorithm core
 // 1er iteration
 foreach ($tFourmis as $Fourmi ) {
+
+
 	// Tableau d'operations finis
 	$tabOperFinis = array();
 	$tabOperations = initialisationOperations();
 	$tabOperateurs = initialisationOperateurs();
 	$operateurStat = initialisationStat();
 	$tacheCourant = $Fourmi;
+
+	// Affectation des operations du controle
+	$idoperateur = chercherOperateurControle($tabOperateurs);
+	$resultCtr = affecterOperationControle($tabOperations,$operateurStat,$idoperateur);
+	$operateurStat = $resultCtr[0];
+	$tabOperations = $resultCtr[1];
 	echo "<br>==========================<br>";
 	while (count($tabOperFinis) < count($tPrec)){
 
@@ -287,11 +295,11 @@ function affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOpe
 										
 
 		} if ($operation[3] == 0 ){
-			$nbrdiv = 2;
+			$nbrdiv = 3;
 			echo "l'operation => ".$operation[1]." non affecté a aucune operateur<br>";
 			$operationdivise = diviserOperation($nbrdiv,$operation,$tacheCourant);
-			//var_dump($operationdivise);
-			affecterOperationDivise($operationdivise,$operateursIds);
+			var_dump($operationdivise);
+			affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$nbrTachesMax,$nbrMachinesMax,$satmax);
 		}
 
 
@@ -384,19 +392,21 @@ function initialisationStat(){
 }
 function diviserOperation($nbrdiv,$operation,$idoperation){
 	for($i=0;$i < $nbrdiv ;$i++ ){
-		$operationdivise[$i][] = $operation[0]/$nbrdiv;
-		$operationdivise[$i][] = 0;
-		$operationdivise[$i][] = $idoperation;
-		$operationdivise[$i][] = null;
+		$operationdivise[$i][] = $operation[0]/$nbrdiv; // Tranche charge 
+		$operationdivise[$i][] = 0; // Etat ( 1 => tranche affectee , 0 => tranche non affecté )
+		$operationdivise[$i][] = $idoperation; // L'identifiant d'operation 
+		$operationdivise[$i][] = null; // ID  d'operateur effectier cette tranche d'operation  
 	}
 	return $operationdivise;
 
 }
 
-function affecterOperationDivise($operationdivise,$operateursIds){
-	
-	foreach ($operationdivise as $operation){
-		foreach ($operateursIds as $idOpt){
+function affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$satmax){
+	$affectation = 0;
+	foreach ($operationdivise as $operation){ // Pour chaque tranche d'operation
+		foreach ($operateursIds as $idOpt){ // Pour chaque operateur
+			$operateur = $operateurStat[$idOpt];
+			$tacheCourant = $operation[2];
 			if ($operation[3] != $idOpt){
 				// Essayer d'affecter cette tranche d'operation pour cette operateur
 									$nbrmachines = $operateur[7]; 
@@ -416,22 +426,59 @@ function affecterOperationDivise($operationdivise,$operateursIds){
 										$operateur[5][] = $tacheCourant ; 
 										$operateur[6][] = $operation[0] ;  // Ajouter la charge aux table stat
 										$operateur[7] = diffMachine($operateur,$operation,$tabOperations);
-										$operateur[8]=$nbrtaches+1;
-										$operation[3] = 1;
-										// Il faut sortir de la boucle 
-										// Changer tout les tables
-										//$tabOperations[$tacheCourant] = $operation;
-										//$operateurStat[$idOpt] = $operateur;
-										
-										return array($operateur,$idOpt,$operation);
+										$operateur[8]= $nbrtaches+1;
+										$operation[3] = $idOpt;
+										$affectation++;
 										
 									}
 
 			}
-		}
+
+		}// Fin de parcours de la liste des operateurs
+	}// Fin de parcours de la liste des tranches
+	if ($affectation == count($operationdivise)){
+		echo "operation de division a ete affecté";
+
+	}else{
+		echo "<br>========== la division ============<br>";
+		var_dump($operationdivise);
+		echo "<br>========== fin de la division ============<br>";
+		
 	}
 
 }
 
+//
+
+function affecterOperationControle($operations,$operateurstat,$idoperateur){
+
+		$idoperation = 0;
+		foreach($operations as $operation){
+			if ($operation[4] == 1 ){
+				$operateurstat[$idoperateur][2] = $operateurstat[$idoperateur][2] + $operation[0];
+				$operateurstat[$idoperateur][3] = round($operateurstat[$idoperateur][2] / $operateurstat[$idoperateur][1] * 100 , 2 ) ;
+				$operateurstat[$idoperateur][4] = round($operateurstat[$idoperateur][2] / $operateurstat[$idoperateur][0] * 100 , 2 ) ;
+				$operateurstat[$idoperateur][5][] = $idoperation ;
+				$operateurstat[$idoperateur][6][] = $operation[0] ;
+				$operations[$idoperation][3] = 1; 
+			}
+			$idoperation ++;
+		}
+		
+		return array($operateurstat,$operations);
+
+
+}
+//
+function chercherOperateurControle($operateurs){
+$idoperateur = 0;
+	foreach ($operateurs as $operateur) {
+		if ( $operateur[2] == 1 ){
+			return $idoperateur;
+		}
+		$idoperateur++ ;
+	}
+	return -1;
+}
 
 ?>
