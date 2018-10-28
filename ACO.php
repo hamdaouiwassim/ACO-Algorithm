@@ -78,6 +78,9 @@ foreach ($tFourmis as $Fourmi ) {
 	$resultCtr = affecterOperationControle($tabOperations,$operateurStat,$idoperateur);
 	$operateurStat = $resultCtr[0];
 	$tabOperations = $resultCtr[1];
+	//var_dump($operateurStat);
+	//var_dump($tabOperations);
+	
 	echo "<br>==========================<br>";
 	while (count($tabOperFinis) < count($tPrec)){
 
@@ -299,7 +302,8 @@ function affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOpe
 			echo "l'operation => ".$operation[1]." non affecté a aucune operateur<br>";
 			$operationdivise = diviserOperation($nbrdiv,$operation,$tacheCourant);
 			var_dump($operationdivise);
-			affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$nbrTachesMax,$nbrMachinesMax,$satmax);
+			affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$nbrTachesMax,$nbrMachinesMax,$tabOperations);
+			var_dump($operateurStat);
 		}
 
 
@@ -401,10 +405,17 @@ function diviserOperation($nbrdiv,$operation,$idoperation){
 
 }
 
-function affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$satmax){
+function affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$nbrTachesMax,$nbrMachinesMax,$tabOperations){
+	//SATURATION MAX
+	$satmax = 120;
 	$affectation = 0;
+	$idoperationdivision = 0 ;
+	$counter = 0;
 	foreach ($operationdivise as $operation){ // Pour chaque tranche d'operation
-		foreach ($operateursIds as $idOpt){ // Pour chaque operateur
+	$trancheaffected = 0 ;
+	while(!$trancheaffected && $counter<count($operateursIds)){
+			// Pour chaque operateur
+			$idOpt = $operateursIds[$counter];
 			$operateur = $operateurStat[$idOpt];
 			$tacheCourant = $operation[2];
 			if ($operation[3] != $idOpt){
@@ -429,15 +440,29 @@ function affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,
 										$operateur[8]= $nbrtaches+1;
 										$operation[3] = $idOpt;
 										$affectation++;
+										$trancheaffected = 1;
 										
 									}
 
 			}
 
+		$counter++;
 		}// Fin de parcours de la liste des operateurs
+		
+		$operationdivise[$idoperationdivision] = $operation;
+		$idoperationdivision++;
 	}// Fin de parcours de la liste des tranches
 	if ($affectation == count($operationdivise)){
-		echo "operation de division a ete affecté";
+		echo "operation".$operation[2]." de division a ete affecté<br>";
+		var_dump($operationdivise);
+		var_dump($operateur);
+		foreach ($operationdivise as $operationtr) {
+			$operateurStat[$operationtr[3]][3] = $operation[0];
+
+		}
+		$tabOperations[$operationdivise[0][2]][3] = 1;
+		return array($operateurStat,$tabOperations);
+		echo "<br>================<br>";
 
 	}else{
 		echo "<br>========== la division ============<br>";
