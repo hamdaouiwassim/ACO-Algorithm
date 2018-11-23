@@ -1,18 +1,37 @@
 <?php
+require_once "functions.php";
+
+// Tableau des operations total
+
+$tabOperationsTotal = array(
+						0 =>  array( 15 , "Couper Keder" , "lame automatique (SU LEE)" , 0  , 0 ),
+					    1 =>  array( 12 , "Exécuter fixation sangle à 9cm" , "PP301 (Durkopp)" , 0  , 0 ),
+					    2 =>  array( 50 , "Exécuter cross box sangle" , "Automate programme n°212 (Brother)"  , 0  , 0  ),
+					    3 =>  array( 60 , "Assembler filets et bandes" , "PP301 (Durkopp)" , 0 , 0  ),
+					    4 =>  array( 20 , "Couper extrémités des bandes","Ciseau à chaud" , 0 , 0 ),
+					    5 =>  array( 50 , "Assembler Keder et filet","PP2. 301 (Durkopp)" , 0 , 0 ),
+					    6 =>  array( 40 , "Exécuter les surpiqures de sécurité","Automate programme n°800 (Brother)", 0 , 0),
+					    7 =>  array( 51 , "Assembler pièce et sangle","Automate programme n°805 (Brother)" , 0 , 0 ),
+					   	8 =>  array( 20 , "Emballer","Manuel" , 0 , 0 ),
+					   	9 =>  array( 30 , "Controler","Manuel" , 0 , 1 ),
+					   	10 =>  array( 45 , "Controler (interm ) ","Manuel" , 0 , 1 )
+					   	
+					   
+					);
+
 
 // Tableau du precedences des taches
 $tPrec =  array(
 						0 => array('-'),
-						1 => array(0),
-						2 => array('-'),
-						3 => array(2),
+						1 => array('-'),
+						2 => array(1),
+						3 => array('-'),
 						4 => array(3),
-						5 => array(2,1),
-						6 => array('-'),
+						5 => array(4,0),
+						6 => array(5),
 						7 => array(6),
 						8 => array(7),
-						9 => array(8),
-					   10 => array(9)
+						
 );
 $tabOperations = initialisationOperations();
 $tabOperateurs = initialisationOperateurs();
@@ -20,15 +39,14 @@ $tabOperateurs = initialisationOperateurs();
 $operateursOperation = array (
 							0 =>  array( 0 , 2 , 3  ),
 							1 =>  array( 0 , 2 , 3 , 4 , 5 ),
-							2 =>  array( 0 , 1 , 3 , 4 ),
+							2 =>  array( 0  , 3 , 4 ),
 							3 =>  array( 0 , 1 , 2 , 3 ),
 							4 =>  array( 0 , 2 , 3 ),
 							5 =>  array( 0 , 2 , 3 ),
 							6 =>  array( 2 , 3 , 5 ),
-							7 =>  array( 6 ),
-							8 =>  array( 2 , 3  ),
-							9 =>  array( 6 ),
-							10 => array( 0 , 1 , 2 , 3 , 4 , 5  )
+							7 =>  array( 2 , 3  ),
+							8 =>  array( 0 , 1 , 2 , 3 , 4 , 5  ),
+							
 
 
 	);
@@ -43,10 +61,10 @@ $nbrTaches = 50 ;
 // Nombre des operations
 $nbrOper = 9 ;
 // Pheromones 0
-$pher0 = 0.2;
+$pher0 = 0.02;
 // Parametre du tableau du pheromones
-$rou = 1 ;
-$Q = 1 ;
+$rou = 0.7 ;
+$Q = 100 ;
 $ICG = 1 ;
 
 // Taux des pheromones
@@ -63,6 +81,8 @@ $tFourmis = chercherFourmis($tPrec,$tFourmis);
 
 // Algorithm core
 // 1er iteration
+echo "==== liste des fourmis ====<br>";
+var_dump($tFourmis);
 foreach ($tFourmis as $Fourmi ) {
 
 
@@ -71,21 +91,20 @@ foreach ($tFourmis as $Fourmi ) {
 	$tabOperations = initialisationOperations();
 	$tabOperateurs = initialisationOperateurs();
 	$operateurStat = initialisationStat();
+	$tabOperationsFinisParts = initialiserOperationFinisParts($tabOperations);
 	$tacheCourant = $Fourmi;
 
 	// Affectation des operations du controle
 	$idoperateur = chercherOperateurControle($tabOperateurs);
-	$resultCtr = affecterOperationControle($tabOperations,$operateurStat,$idoperateur);
+	$resultCtr = affecterOperationControle($tabOperationsTotal,$operateurStat,$idoperateur);
 	$operateurStat = $resultCtr[0];
 	$tabOperations = $resultCtr[1];
-	
+	echo "============ avant les fourmis ========";
+	echo "===== liste des operations finis =====";
+	var_dump($tabOperFinis);
 	while (count($tabOperFinis) < count($tPrec)){
-
-		
+		echo "======= pour tache ".$tacheCourant."============";
 		$tachesPossibles = array();
-		
-		
-		
 		$tachesPossibles = chercherTachesPossibles($tacheCourant,$tPrec,$tabOperFinis,$tachesPossibles);
 		/* Attribier la tache a un operateur */
 		$tabResult = affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOperation,$operateurStat,$tacheCourant,$TMAX,$MMAX);
@@ -94,413 +113,462 @@ foreach ($tFourmis as $Fourmi ) {
 			$operateurStat[$idOpt] = $tabResult[0];
 			$tabOperations[$tacheCourant] = $tabResult[2];
 		}
-		
-
-		
-		// Determination du tache i
-		$ti = $tacheCourant;
-
-		
-		$tabOperFinis[] = $tacheCourant;
-		
-		
-		$tacheCourant  = choisirOperHazard($tachesPossibles) ;
-		
-			
-		
-		// Determination de la tache j @param ICG = Indice Competence Globale , $Q = constatne fixé , $rou = constante fixé
 				
-				/* Mise a jour du tableau du pheromones
 				
+				// Determination du tache i
+				$ti = $tacheCourant;
+				$tabOperFinis[] = $tacheCourant;
+				$tacheCourant  = choisirOperHazard($tachesPossibles) ;
 				$tj = $tacheCourant;
-				$delta = $Q/(1/$ICG);
-				$tauxPheromones[$i][$j] = $rou * $tauxPheromones[$i][$j] + $delta ; 
+				echo "===== liste des taches possibles =====";
+				var_dump($tachesPossibles);
+				echo "===== liste des operations finis =====";
+				var_dump($tabOperFinis);
 				
-				*/
-	}
-	
-
-}
-// * ================== Fin 1er Operation ================== * //
-
-
-
-
-
-
-
-
-// Liste des fonctions 
-
-/* 
-	Fonction qui permet de chercher tout les fourmis a partir de d'un tableau de precedences 
-	@param $tPrec
-	@param $tFourmis
-	@result $tFourmis
-
-*/
-function chercherFourmis($tPrec,$tFourmis){
-	for($i=0;$i<count($tPrec);$i++) {
-		if ($tPrec[$i][0] == '-'){
-			$tFourmis[] = $i; 
-		}
-	}
-	return $tFourmis;
-
-}
-
-/* 
-	Fonction qui permet de chercher tout les operations possible apres une operation courant 
-	@param $operCourant
-	@param $tPrec
-	@param $tOperFinis
-	@result $operPossibles
-
-*/
-
-function chercherTachesPossibles($tacheCourant,$tPrec,$tOperFinis,$ancTachesPossibles){
-	$tachesPossibles=array();
-	for($i=0;$i<count($tPrec);$i++){
-		// Test tacheCourant = la tache parcouri
-				if ($i != $tacheCourant){
-				if (count($tPrec[$i]) == 1  ){
-						if ($tPrec[$i][0] == '-'){
-								if (!in_array($i, $tOperFinis)){
-									$tachesPossibles[] = $i; 
-								}
-						} else if ($tPrec[$i][0] == $tacheCourant){
-								if (!in_array($i, $tOperFinis)){
-									$tachesPossibles[] = $i; 
-								} 
-						} else {
-							if (in_array($tPrec[$i][0],$tOperFinis) && (!in_array($i,$tOperFinis))){
-								$tachesPossibles[] = $i;
-							}
-
-						}
-								
-				}else if (in_array($tacheCourant,$tPrec[$i])){
-					$p=true;
-					for($j=0;$j<count($tPrec[$i]);$j++){
-						if ($tPrec[$i][$j] != $tacheCourant && !in_array($tPrec[$i][$j],$tOperFinis)){
-							$p=false;
-						}
-					}
-					if ($p){$tachesPossibles[] = $i ;}
-				}else{
-					$p=true;
-					for($j=0;$j<count($tPrec[$i]);$j++){
-						if ($tPrec[$i][$j] != $tacheCourant && !in_array($tPrec[$i][$j],$tOperFinis)){
-							$p=false;
-						}
-					}
-					if ($p){$tachesPossibles[] = $i ;}
-				}
-
-				
-			}
-	}
-	foreach ($ancTachesPossibles as $tache) {
-		if (!in_array($tache,$ancTachesPossibles)){
-			$tachesPossibles[] = $tache;
-		}
-	}
-	return $tachesPossibles;
-}
-
-
-/* 
-	Fonction qui permet de choisir une operation aux hazard a partir d'une liste des operations 
-	@param $tabOper
-	@result $operChoisie
-
-*/
-
-function choisirOperHazard($tabOper){
-	if (count($tabOper) > 0 ){
-			if (count($tabOper) == 1 ){
-				return $tabOper[0];
-			}else{
-				$indice = rand(0,count($tabOper)-1);
-				return $tabOper[$indice];	
-			}	
-	}
-	
-	
-}
-
-
-
-function initialisationPheremones($nbrTaches,$pher0){
-	for($i=0;$i<$nbrTaches;$i++){
-				for($j=0;$j<$nbrTaches;$j++){
-				$tabPheromones[$i][$j] = $pher0;
-				}
-	}
-	return $tabPheromones;
-
-}
-
-/*
-	Fonction qui permet de retourner l'indice de competence globale
-*/
-
-function affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOperation,$operateurStat,$tacheCourant,$nbrTachesMax,$nbrMachinesMax){
-			//SATURATION MAX
-			$satmax = 120;
-			// Determiner l'operation
-			$operation = $tabOperations[$tacheCourant];
-			// Chercher list des operateurs compatible
-			$operateursIds = $operateursOperation[$tacheCourant];
-
-			// Chercher l'operateur Adequoit
-			foreach ($operateursIds as $idOpt) {
-
-					$operateur = $operateurStat[$idOpt];
-
-					if ($operation[3] == 0){ // Operation non affecté 
-									$nbrmachines = $operateur[7]; 
-									$potentiel = $operateur[1] ;
-									$nbrtaches =  $operateur[8] ;
-									$charge = $operateur[2] + $operation[0];
-									$saturation = round(($charge / $potentiel) *100,2); 
-									$effectif =  round($charge / $operateur[0] *100 , 2 ) ;
-
-									// Operation non affecté et tt les contraintes d'operateur acceptable
-									if ($saturation <= $satmax && $nbrtaches < $nbrTachesMax && $nbrmachines < $nbrMachinesMax ){
-										
-										// Changer les valeurs d'equilibrage pour l'operateur
-										$operateur[2] = $charge  ;
-										$operateur[3] = $saturation ;
-										$operateur[4] = $effectif ;
-										$operateur[5][] = $tacheCourant ; 
-										$operateur[6][] = $operation[0] ;  // Ajouter la charge aux table stat
-										$operateur[7] = diffMachine($operateur,$operation,$tabOperations);
-										$operateur[8]=$nbrtaches+1;
-										$operation[3] = 1;
-										// Il faut sortir de la boucle 
-										// Changer tout les tables
-										//$tabOperations[$tacheCourant] = $operation;
-										//$operateurStat[$idOpt] = $operateur;
-										
-										return array($operateur,$idOpt,$operation);
-										
-									}
-									
-
-					}
-										
-
-		} if ($operation[3] == 0 ){ // Tache non effecté a aucun operateur
-			$nbrdiv = 2;
-			$nbrdivtot = count($operateursIds);
-			$operationdivise = diviserOperation(2,$operation,$tacheCourant);
-			$affect = affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$nbrTachesMax,$nbrMachinesMax,$tabOperations);
-			while (!$affect && ($nbrdiv <= $nbrdivtot)){
-			$nbrdiv++;
-			$operationdivise = diviserOperation($nbrdiv,$operation,$tacheCourant);
-			$affect = affecterOperationDivise($operationdivise,$operateursIds,$operateurStat,$nbrTachesMax,$nbrMachinesMax,$tabOperations);
-			}
-			
-		}
-
-
-			
-			
-			return null;
-
-}
-
-/*
-	Fonction qui permet de retourner l'indice de competence globale
-
-*/
-function getICG(){
-
-}
-function diffMachine($operateur,$operation,$tabOperations){
-	
-	
-		if (count($operateur[5]) == 0 ){
-			return 1;
-		}
-		$nbrmachines = $operateur[7];
-		$machine = 0;
-		foreach($operateur[5] as $oper){
-			
-			
-			if ( getMachine($oper,$tabOperations) == $operation[2] ){
-				$machine = 1;
-			}
-		}
 		
-		if ($machine){
-			
-			return $nbrmachines+1;
-		}else{return $nbrmachines;}
-
-
-}
-function getMachine($oper,$tabOperations){
-	return $tabOperations[$oper][2];
-
-}
-
-function initialisationOperations(){
-	$tabOperations = array( 
-						0 =>  array( 15 , "Couper Keder" , "lame automatique (SU LEE)" , 0  , 0 ),
-					    1 =>  array( 12 , "Exécuter fixation sangle à 9cm" , "PP301 (Durkopp)" , 0  , 0 ),
-					    2 =>  array( 50 , "Exécuter cross box sangle" , "Automate programme n°212 (Brother)"  , 0  , 0  ),
-					    3 =>  array( 60 , "Assembler filets et bandes" , "PP301 (Durkopp)" , 0 , 0  ),
-					    4 =>  array( 20 , "Couper extrémités des bandes","Ciseau à chaud" , 0 , 0 ),
-					    5 =>  array( 50 , "Assembler Keder et filet","PP2. 301 (Durkopp)" , 0 , 0 ),
-					    6 =>  array( 40 , "Exécuter les surpiqures de sécurité","Automate programme n°800 (Brother)", 0 , 0),
-					    7 =>  array( 45 , "Eplucher et Controler (interm)","Manuel" , 0 , 1 ),
-					    8 =>  array( 51 , "Assembler pièce et sangle","Automate programme n°805 (Brother)" , 0 , 0 ),
-					    9 =>  array( 30 , "Controler","Manuel"  , 0 , 1 ),
-					   10 => array( 20 , "Emballer","Manuel" , 0 , 0 )
-					 
-					 );
-		return $tabOperations;
-}
-
-function initialisationOperateurs(){
-	$tabOperateurs = array(
-							0 => array( "Hayet"  , "HA1245" , 0 ),
-							1 => array( "Mariem" , "MA1245" , 0 ),
-							2 => array( "Roua" , "RA1245" , 0 ),
-							3 => array( "Ghada" , "GH1245" , 0 ),
-							4 => array( "Sameh" , "SA1245" , 0 ),
-							5 => array( "Ameni" , "AM1245" , 0),
-							6 => array( "Nouha" , "NO1245", 1)
+				
+				
+				
+	} 			echo "======= Affichage du part des operations =======<br>";
+				$tabOperationsFinisParts = calculerOperationFinisParts($tabOperations,$operateurStat);
+				var_dump($tabOperationsFinisParts);
+				echo "======= Affichage du part des operateurs =======<br>";
+				var_dump($operateurStat);
+				// Fin Fourmi 
+				// Determination de la tache j @param ICG = Indice Competence Globale , $Q = constatne fixé , $rou = constante fixé
+				$courantICG = calculICG($tabOperationsFinisParts,$tabOperFinis);
+				$listeICG[] = $courantICG;
+ 				$EquilibrageData[] = array($tabOperationsFinisParts,$tabOperFinis,$courantICG,$operateurStat);
+ 				 
+				// Deposer une poste entre 2 taches successives
+							$delta = $Q/(1/$courantICG);
+							for($i=0;$i<count($tabOperFinis)-1;$i++){
+								$listeDelta[$tabOperFinis[$i]][$tabOperFinis[$i+1]][] = $delta;
+							} 
+							echo "<br>Liste of Delta<br>";
+							var_dump($listeDelta);
 							
+							
+				// fin mis a jour
 
-	);
-	return $tabOperateurs;
+				// Mise a jour du tableau du pheromones
+							$delta = $Q/(1/$courantICG);
+							for($i=0;$i<count($tabOperFinis)-1;$i++){
+								$tauxPheromones[$tabOperFinis[$i]][$tabOperFinis[$i+1]] = ( 1 - $rou ) * $delta + array_sum ($listeDelta[$tabOperFinis[$i]][$tabOperFinis[$i+1]]) ;
+							} 
+							echo "<br>Taux du pher<br>";
+							var_dump($tauxPheromones);
+							
+				// fin mis a jour
 }
+echo "======= listes des operations apres l'equilibrage =======<br>";
+var_dump($tabOperations);
+var_dump($listeICG);
+ $courantICGMax = array(tabmax($listeICG),getIDICG($listeICG));
+$listeICGMax[] = $courantICGMax; 
+$tabOperFinisMax = $EquilibrageData[$courantICGMax[1]][1] ;
+var_dump($listeICGMax);
+var_dump($EquilibrageData);
+echo "<br>====== liste operateur finis max =======<br>";
+var_dump($tabOperFinisMax);
+// Determination de la tache j @param ICGMax = Indice Competence Globale Max , $Q = constatne fixé , $rou = constante fixé
+//$ICGMax = max($listeICG);
 
-function initialisationStat(){
-	$operateurStat = array(
-						0 => array( 70.635 , 47.34 , 0 , 0 , 0 , array() , array() , 0 , 0 ),
-						1 => array( 94.360 , 63.25 , 0 , 0 , 0 , array() , array() , 0 , 0 ),
-						2 => array( 72.846 , 48.83 , 0 , 0 , 0 , array() , array() , 0 , 0 ),
-						3 => array( 69.816 , 46.80 , 0 , 0 , 0 , array() , array() , 0 , 0 ),
-						4 => array( 91.383 , 61.25 , 0 , 0 , 0 , array() , array() , 0 , 0 ),
-						5 => array( 87.285 , 58.51 , 0 , 0 , 0 , array() , array() , 0 , 0 ),
-						6 => array( 100.00 , 67.03 , 0 , 0 , 0 , array() , array() , 0 , 0 )
+						// Deposer une poste entre 2 taches successives
+							$deltaMax = $Q/(1/$courantICGMax[0]);
+							for($i=0;$i<count($tabOperFinisMax)-1;$i++){
+								$listeDeltaMax[$tabOperFinisMax[$i]][$tabOperFinisMax[$i+1]][] = $deltaMax;
+							} 
+							echo "<br>Liste of Delta Max <br>";
+							var_dump($listeDeltaMax);
+							
+							
+							// fin mis a jour
 
-	);
-	return $operateurStat;
-}
-function diviserOperation($nbrdiv,$operation,$idoperation){
-	for($i=0;$i < $nbrdiv ;$i++ ){
-		$operationdivise[$i][] = $operation[0]/$nbrdiv; // Tranche charge 
-		$operationdivise[$i][] = 0; // Etat ( 1 => tranche affectee , 0 => tranche non affecté )
-		$operationdivise[$i][] = $idoperation; // L'identifiant d'operation 
-		$operationdivise[$i][] = null; // ID  d'operateur effectier cette tranche d'operation  
-	}
-	return $operationdivise;
-
-}
-
-function affecterOperationDivise($operationdivise,$operateursIds,&$operateurStat,$nbrTachesMax,$nbrMachinesMax,&$tabOperations){
-	//SATURATION MAX
-	$satmax = 120;
-	$affectation = 0;
-	$idoperationdivision = 0 ;
-	$counter = 0;
-	foreach ($operationdivise as $operation){ // Pour chaque tranche d'operation
-	$trancheaffected = 0 ;
-	while(!$trancheaffected && $counter<count($operateursIds)){
-			// Pour chaque operateur
-			$idOpt = $operateursIds[$counter];
-			$operateur = $operateurStat[$idOpt];
-			$tacheCourant = $operation[2];
-			if ($operation[3] != $idOpt){
-				// Essayer d'affecter cette tranche d'operation pour cette operateur
-									$nbrmachines = $operateur[7]; 
-									$potentiel = $operateur[1] ;
-									$nbrtaches =  $operateur[8] ;
-									$charge = $operateur[2] + $operation[0];
-									$saturation = round(($charge / $potentiel) *100,2); 
-									$effectif =  round($charge / $operateur[0] *100 , 2 ) ;
-
-									// Operation non affecté et tt les contraintes d'operateur acceptable
-									if ($saturation <= $satmax && $nbrtaches < $nbrTachesMax && $nbrmachines < $nbrMachinesMax ){
+							// Mise a jour du tableau du pheromones
+										$deltaMax = $Q/(1/$courantICGMax[0]);
+										for($i=0;$i<count($tabOperFinisMax)-1;$i++){
+											$tauxPheromones[$tabOperFinisMax[$i]][$tabOperFinisMax[$i+1]] = ( 1 - $rou ) * $delta + array_sum ($listeDeltaMax[$tabOperFinisMax[$i]][$tabOperFinisMax[$i+1]]) ;
+										} 
+										echo "<br>Taux du pher Max<br>";
+										var_dump($tauxPheromones);
 										
-										
-										$operation[3] = $idOpt;
-										$affectation++;
-										$trancheaffected = 1;
-										
-									}
+							// fin mis a jour
+// * ================== Fin 1er Iteration ================== * //
 
-			}
+// * ================== Debut Reste d'operations =========== * //
 
-		$counter++;
-		}// Fin de parcours de la liste des operateurs
-		
-		$operationdivise[$idoperationdivision] = $operation;
-		$idoperationdivision++;
-	}// Fin de parcours de la liste des tranches
-	if ($affectation == count($operationdivise)){ // Tache divisé et effecté pour des operateurs
-		
-		foreach ($operationdivise as $operationtr) {
-			$operation = $tabOperations[$operationtr[2]];
-			$operateurStat[$operationtr[3]][2] += $operationtr[0];
-			$charge = $operateurStat[$operationtr[3]][2];
-			$potentiel = $operateur[1] ;
-			$saturation = round(($charge / $potentiel) *100,2); 
-			$effectif =  round($charge / $operateur[0] *100 , 2 ) ;
+// * ================== Calcul du Tableau du probabilité === * //
+for ($i=0;$i<$nbrOper;$i++){
+	for ($j=0; $j <$nbrOper ; $j++) { 
 
-			$operateurStat[$operationtr[3]][3] = $saturation;
-			$operateurStat[$operationtr[3]][4] = $effectif;
-			$operateurStat[$operationtr[3]][5][] = $operationtr[2];
-			$operateurStat[$operationtr[3]][6][] = $operationtr[0];
-			$operateurStat[$operationtr[3]][7] = diffMachine($operateurStat[$operationtr[3]],$operation,$tabOperations);
-			$operateurStat[$operationtr[3]][8] += 1;
-
-		}
-		$tabOperations[$operationdivise[0][2]][3] = 1;
-		return 1;
-		
-	}else{ // Tache divisé et non effecté
-		return 0;
+		$probabilite[$i][$j] = 0;
 	}
-
 }
+// Affichage de tableau du probabilité  
+var_dump($probabilite);
 
-//
+for ($ntaches=0;$ntaches < 1 ; $ntaches++){
 
-function affecterOperationControle($operations,$operateurstat,$idoperateur){
-
-		$idoperation = 0;
-		foreach($operations as $operation){
-			if ($operation[4] == 1 ){
-				$operateurstat[$idoperateur][2] = $operateurstat[$idoperateur][2] + $operation[0];
-				$operateurstat[$idoperateur][3] = round($operateurstat[$idoperateur][2] / $operateurstat[$idoperateur][1] * 100 , 2 ) ;
-				$operateurstat[$idoperateur][4] = round($operateurstat[$idoperateur][2] / $operateurstat[$idoperateur][0] * 100 , 2 ) ;
-				$operateurstat[$idoperateur][5][] = $idoperation ;
-				$operateurstat[$idoperateur][6][] = $operation[0] ;
-				$operations[$idoperation][3] = 1; 
-			}
-			$idoperation ++;
-		}
-		
-		return array($operateurstat,$operations);
+					// * ================== Debut Reste d'operations =========== * //
 
 
-}
-//
-function chercherOperateurControle($operateurs){
-$idoperateur = 0;
-	foreach ($operateurs as $operateur) {
-		if ( $operateur[2] == 1 ){
-			return $idoperateur;
-		}
-		$idoperateur++ ;
+						foreach ($tFourmis as $Fourmi ) {
+
+
+											// Tableau d'operations finis
+											$tabOperFinis = array();
+											$tabOperations = initialisationOperations();
+											$tabOperateurs = initialisationOperateurs();
+											$operateurStat = initialisationStat();
+											$tabOperationsFinisParts = initialiserOperationFinisParts($tabOperations);
+											$tacheCourant = $Fourmi;
+
+											// Affectation des operations du controle
+											$idoperateur = chercherOperateurControle($tabOperateurs);
+											$resultCtr = affecterOperationControle($tabOperationsTotal,$operateurStat,$idoperateur);
+											$operateurStat = $resultCtr[0];
+											$tabOperations = $resultCtr[1];
+											echo "============ avant les fourmis ========";
+											echo "===== liste des operations finis =====";
+											var_dump($tabOperFinis);
+											while (count($tabOperFinis) < count($tPrec)){
+												echo "======= pour tache ".$tacheCourant."============";
+												$tachesPossibles = array();
+												$tachesPossibles = chercherTachesPossibles($tacheCourant,$tPrec,$tabOperFinis,$tachesPossibles);
+												/* Attribier la tache a un operateur */
+												$tabResult = affecterOperationOperateur($tabOperateurs,$tabOperations,$operateursOperation,$operateurStat,$tacheCourant,$TMAX,$MMAX);
+												if ($tabResult != NULL ){
+													$idOpt = $tabResult[1];
+													$operateurStat[$idOpt] = $tabResult[0];
+													$tabOperations[$tacheCourant] = $tabResult[2];
+												}
+														
+														
+														// Determination du tache i
+														$ti = $tacheCourant;
+														$tabOperFinis[] = $tacheCourant;
+
+														$tacheCourant  = CalculerProbabilte($ti,$tachesPossibles,$probabilite,$tauxPheromones,$tabOperations,0.8,0.2) ;
+														$tj = $tacheCourant;
+														echo "===== liste des taches possibles =====";
+														var_dump($tachesPossibles);
+														echo "===== liste des operations finis =====";
+														var_dump($tabOperFinis);
+														
+												
+														
+														
+														
+											} 			echo "======= Affichage du part des operations =======<br>";
+														$tabOperationsFinisParts = calculerOperationFinisParts($tabOperations,$operateurStat);
+														var_dump($tabOperationsFinisParts);
+														echo "======= Affichage du part des operateurs =======<br>";
+														var_dump($operateurStat);
+														// Fin Fourmi 
+														// Determination de la tache j @param ICG = Indice Competence Globale , $Q = constatne fixé , $rou = constante fixé
+														$courantICG = calculICG($tabOperationsFinisParts,$tabOperFinis);
+														$listeICG[] = $courantICG;
+										 				$EquilibrageData[] = array($tabOperationsFinisParts,$tabOperFinis,$courantICG,$operateurStat);
+										 				 
+														// Deposer une poste entre 2 taches successives
+																	$delta = $Q/(1/$courantICG);
+																	for($i=0;$i<count($tabOperFinis)-1;$i++){
+																		$listeDelta[$tabOperFinis[$i]][$tabOperFinis[$i+1]][] = $delta;
+																	} 
+																	echo "<br>Liste of Delta<br>";
+																	var_dump($listeDelta);
+																	
+																	
+														// fin mis a jour
+
+														// Mise a jour du tableau du pheromones
+																	$delta = $Q/(1/$courantICG);
+																	for($i=0;$i<count($tabOperFinis)-1;$i++){
+																		$tauxPheromones[$tabOperFinis[$i]][$tabOperFinis[$i+1]] = ( 1 - $rou ) * $delta + array_sum ($listeDelta[$tabOperFinis[$i]][$tabOperFinis[$i+1]]) ;
+																	} 
+																	echo "<br>Taux du pher<br>";
+																	var_dump($tauxPheromones);
+																	
+														// fin mis a jour
+										
+										echo "======= listes des operations apres l'equilibrage =======<br>";
+										var_dump($tabOperations);
+										var_dump($listeICG);
+										 $courantICGMax = array(tabmax($listeICG),getIDICG($listeICG));
+										$listeICGMax[] = $courantICGMax; 
+										$tabOperFinisMax = $EquilibrageData[$courantICGMax[1]][1] ;
+										var_dump($listeICGMax);
+										var_dump($EquilibrageData);
+										echo "<br>====== liste operateur finis max =======<br>";
+										var_dump($tabOperFinisMax);
+										// Determination de la tache j @param ICGMax = Indice Competence Globale Max , $Q = constatne fixé , $rou = constante fixé
+										//$ICGMax = max($listeICG);
+										// Deposer une poste entre 2 taches successives
+										$deltaMax = $Q/(1/$courantICGMax[0]);
+										for($i=0;$i<count($tabOperFinisMax)-1;$i++){
+												$listeDeltaMax[$tabOperFinisMax[$i]][$tabOperFinisMax[$i+1]][] = $deltaMax;
+																	} 
+										echo "<br>Liste of Delta Max <br>";
+										var_dump($listeDeltaMax);
+																	
+																	
+										// fin mis a jour							
+								
+																
+										// Mise a jour du tableau du pheromones
+										$deltaMax = $Q/(1/$courantICGMax[0]);
+										for($i=0;$i<count($tabOperFinisMax)-1;$i++){
+											$tauxPheromones[$tabOperFinisMax[$i]][$tabOperFinisMax[$i+1]] = ( 1 - $rou ) * $delta + array_sum ($listeDeltaMax[$tabOperFinisMax[$i]][$tabOperFinisMax[$i+1]]) ;
+										} 
+										echo "<br>Taux du pher Max<br>";
+										var_dump($tauxPheromones);
+										
+										// fin mis a jour
+						
+
+						// Determination de la tache j @param ICGMax = Indice Competence Globale Max , $Q = constatne fixé , $rou = constante fixé
+						//$ICGMax = max($listeICG);
+echo "======= probabilite finale ========";
+var_dump($probabilite);
+echo "======= tout les equilibrages ========";
+var_dump($EquilibrageData);
+} // Fin pour nombre des taches
+
+
+// * ================== Fin Reste d'operations =========== * //
+
+
+// * ================== Resultat Finale ================== * //
+
+$ICGTotMax = $EquilibrageData[0];
+foreach($EquilibrageData as $equilibrage){
+	if ($equilibrage[2] > $ICGTotMax[2] ){
+		$ICGTotMax = $equilibrage;
 	}
-	return -1;
 }
+
+echo "=======  equilibrage Total Max ========";
+var_dump($ICGTotMax[0]);
+//$ICGTotMax[1];
+//$ICGTotMax[2];
+
+}
+
+echo "Nombre d'equilibrage effecté";
+echo count($EquilibrageData);
+
 
 ?>
+
+
+<!-- Bootstrap Include -->
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+<!-- Bootstrap Include -->
+
+
+<?php $nbrequi= 0 ; foreach($EquilibrageData as $Data){ 
+	$nbrequi++;
+//echo "====== Data =======";
+//var_dump($Data);	
+$DataInfo = $Data[0];
+$Stat = $Data[3];
+
+?>  	
+<div style="padding:20px;">
+
+			<div class="alert alert-info" role="alert">
+			  Equilibrage <?php echo $nbrequi; ?> !
+					  <br>
+					  <div class="alert alert-success" role="alert">
+					  Indice Competence Globale => " <?php echo $Data[2]; ?> "!
+					</div>
+			</div>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col" >Les Operations | Les Operateurs</th>
+      <?php foreach ($tabOperateurs as $operateur) {
+      echo '<th scope="col" >'.$operateur[1].'</th>';	
+      } ?>
+    </tr>
+   
+  </thead>
+  <tbody>
+  		<?php foreach ($DataInfo as $Info) {//echo "Data";var_dump($DataInfo); ?>
+  	    <tr>
+      <td><?php echo $tabOperationsTotal[$Info[0]][1]." ( ".$tabOperationsTotal[$Info[0]][0]." ) ";  ?></td>
+      		<?php
+      		for ($i=0 ;$i<7 ;$i++){
+      		 	$tabvalue[$i]="-";
+      		 } 
+      		 $j=0;
+      		foreach($Info[1] as $op ){
+      			$tabvalue[$op] = $Info[2][$j]; 
+      			$j++;
+      		} 
+  		foreach($tabvalue as $value){
+      		echo "<td>".$value."</td>";
+      		} ?>
+      
+     
+    </tr>
+    <?php } ?>
+    <tr class="table-primary"> 
+      <th>Potentiel</th>
+      <td><?php echo $Stat[0][1];?></td>
+      <td><?php echo $Stat[1][1];?></td>
+      <td><?php echo $Stat[2][1];?></td>
+      <td><?php echo $Stat[3][1];?></td>
+      <td><?php echo $Stat[4][1];?></td>
+      <td><?php echo $Stat[5][1];?></td>
+      <td><?php echo $Stat[6][1];?></td>
+    </tr>
+    <tr class="table-primary">
+      <th>Charge</th>
+      <td><?php echo $Stat[0][2];?></td>
+      <td><?php echo $Stat[1][2];?></td>
+      <td><?php echo $Stat[2][2];?></td>
+      <td><?php echo $Stat[3][2];?></td>
+      <td><?php echo $Stat[4][2];?></td>
+      <td><?php echo $Stat[5][2];?></td>
+      <td><?php echo $Stat[6][2];?></td>
+    </tr>
+    <tr class="table-primary">  
+     <th>Saturation</th>
+      <td><?php echo $Stat[0][3];?></td>
+      <td><?php echo $Stat[1][3];?></td>
+      <td><?php echo $Stat[2][3];?></td>
+      <td><?php echo $Stat[3][3];?></td>
+      <td><?php echo $Stat[4][3];?></td>
+      <td><?php echo $Stat[5][3];?></td>
+      <td><?php echo $Stat[6][3];?></td>
+    </tr>
+  	<tr class="table-primary">
+      
+      <th>Temps Effectif</th>
+      <td><?php echo $Stat[0][4];?></td>
+      <td><?php echo $Stat[1][4];?></td>
+      <td><?php echo $Stat[2][4];?></td>
+      <td><?php echo $Stat[3][4];?></td>
+      <td><?php echo $Stat[4][4];?></td>
+      <td><?php echo $Stat[5][4];?></td>
+      <td><?php echo $Stat[6][4];?></td>
+    </tr>
+  
+  
+  </tbody>
+</table>
+</div>
+<?php
+ } ?>
+
+
+<?php $Data = $ICGTotMax;
+$DataInfo = $Data[0];
+$Stat = $Data[3];
+ ?>
+ <div style="padding:20px;">
+
+			<div class="alert alert-danger" role="alert">
+			  Equilibrage avec ICG Max  !
+					  <br>
+					  <div class="alert alert-success" role="alert">
+					  Indice Competence Globale => " <?php echo $Data[2]; ?> "!
+					</div>
+			</div>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col" >Les Operations | Les Operateurs</th>
+      <?php foreach ($tabOperateurs as $operateur) {
+      echo '<th scope="col" >'.$operateur[1].'</th>';	
+      } ?>
+
+    </tr>
+   
+  </thead>
+  <tbody>
+  		<?php foreach ($DataInfo as $Info) {//echo "Data";var_dump($DataInfo); ?>
+  	    <tr>
+      <td><?php echo $tabOperationsTotal[$Info[0]][1]." ( ".$tabOperationsTotal[$Info[0]][0]." ) ";  ?></td>
+      		<?php
+      		for ($i=0 ;$i<count($tabOperateurs);$i++){
+      		 	$tabvalue[$i]="-";
+      		 } 
+      		 $j=0;
+      		foreach($Info[1] as $op ){
+      			$tabvalue[$op] = $Info[2][$j]; 
+      			$j++;
+      		} 
+      		foreach($tabvalue as $value){
+      		echo "<td>".$value."</td>";
+      		} ?>
+      
+     
+    </tr>
+    <?php } ?>
+    <tr class="table-primary"> 
+      <th>Potentiel</th>
+      <td><?php echo $Stat[0][1];?></td>
+      <td><?php echo $Stat[1][1];?></td>
+      <td><?php echo $Stat[2][1];?></td>
+      <td><?php echo $Stat[3][1];?></td>
+      <td><?php echo $Stat[4][1];?></td>
+      <td><?php echo $Stat[5][1];?></td>
+      <td><?php echo $Stat[6][1];?></td>
+    </tr>
+    <tr class="table-primary">
+      <th>Charge</th>
+      <td><?php echo $Stat[0][2];?></td>
+      <td><?php echo $Stat[1][2];?></td>
+      <td><?php echo $Stat[2][2];?></td>
+      <td><?php echo $Stat[3][2];?></td>
+      <td><?php echo $Stat[4][2];?></td>
+      <td><?php echo $Stat[5][2];?></td>
+      <td><?php echo $Stat[6][2];?></td>
+    </tr>
+    <tr class="table-primary">  
+     <th>Saturation</th>
+      <td><?php echo $Stat[0][3];?></td>
+      <td><?php echo $Stat[1][3];?></td>
+      <td><?php echo $Stat[2][3];?></td>
+      <td><?php echo $Stat[3][3];?></td>
+      <td><?php echo $Stat[4][3];?></td>
+      <td><?php echo $Stat[5][3];?></td>
+      <td><?php echo $Stat[6][3];?></td>
+    </tr>
+  	<tr class="table-primary">
+      
+      <th>Temps Effectif</th>
+      <td><?php echo $Stat[0][4];?></td>
+      <td><?php echo $Stat[1][4];?></td>
+      <td><?php echo $Stat[2][4];?></td>
+      <td><?php echo $Stat[3][4];?></td>
+      <td><?php echo $Stat[4][4];?></td>
+      <td><?php echo $Stat[5][4];?></td>
+      <td><?php echo $Stat[6][4];?></td>
+    </tr>
+  
+  
+  </tbody>
+</table>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
